@@ -161,6 +161,65 @@ int calibrate()
 	return 0;
 }
 
+static int StereoCalib(const vector<string> &imageList, Size broadSize, float squareSize, bool displayCorners = false, bool useCalibrated = true, bool showRectified = true)
+{
+	//copy from https://github.com/opencv/opencv/blob/3.4.1/samples/cpp/stereo_calib.cpp check this shit out
+
+	if (imageList.size() % 2 != 0)
+	{
+		cout << "need to be even" << endl;
+		return;
+	}
+
+	const int maxScale = 2;
+
+	vector<vector<Point2f>> imagePoints[2];
+	vector<vector<Point3f>> objectPoints;
+	Size imageSize;
+	
+	int i, j, k, nimages = (int)imageList.size() / 2;
+	imagePoints[0].resize(nimages);
+	imagePoints[1].resize(nimages);
+
+	vector<string> goodImageList;
+
+	for (i = j = 0; i < nimages; i++)
+	{
+		for (k = 0; k < 2; k++)
+		{
+			const string &fileName = imageList[i*2+k];
+			Mat img = imread(fileName,0);
+			if (img.empty()) break;
+			if (imageSize == Size()) imageSize = img.size();
+			else if (imageSize!=img.size())
+			{
+				cout << "fucking wrong size, skipping " << fileName << endl;
+				break;
+			}
+
+			bool found = true;
+			vector<Point2f> &corners = imagePoints[k][j];
+			for (int scale = 1; scale <= maxScale; scale++)
+			{
+				Mat timg;
+				if (scale == 1) timg = img;
+				else
+				{
+
+				}
+			}
+
+
+		}
+	}
+
+
+
+
+}
+
+
+
 Rect computeROI(Size2i src_sz, Ptr<StereoMatcher> matcher_instance)
 {
 	int min_disparity = matcher_instance->getMinDisparity();
