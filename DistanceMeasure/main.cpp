@@ -203,15 +203,67 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 			{
 				Mat timg;
 				if (scale == 1) timg = img;
-				else
+				else resize(img,timg,Size(),scale,scale,INTER_LINEAR_EXACT);
+				found = findChessboardCorners(timg, broadSize, corners, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE);
+				if (found)
 				{
-
+					if (scale > 1)
+					{
+						Mat cornersMat(corners);
+						cornersMat *= 1. / scale;
+					}
+					break;
 				}
+
 			}
+			if (displayCorners)
+			{
+				cout << fileName << endl;
+				Mat cimg, cimg1;
+				cvtColor(img,cimg,COLOR_GRAY2BGR);
+				drawChessboardCorners(cimg,broadSize,corners,found);
+				double sf = 640. / MAX(img.rows, img.cols);
+				resize(cimg,cimg1,Size(),sf,sf,INTER_LINEAR_EXACT);
+				imshow("corner",cimg1);
+				char c = (char)waitKey(500);
+				if (c == 27 || c == 'q' || c == 'Q') //Allow ESC to quit
+					exit(-1);
+			}
+			else
+				putchar('.');
+			if (!found) break;
 
-
+			cornerSubPix(img,corners,Size(11,11),Size(-1,-1),TermCriteria(TermCriteria::COUNT + TermCriteria::EPS, 30, 0.01));
+		}
+		if (k == 2)
+		{
+			goodImageList.push_back(imageList[i * 2]);
+			goodImageList.push_back(imageList[i * 2 + 1]);
+			j++;
 		}
 	}
+
+	cout << j << "pair successfully detected" << endl;
+	nimages = j;
+	if (nimages < 2)
+	{
+		cout << "2 fucking little pair to run" << endl;
+		return;
+	}
+
+	imagePoints[0].resize(nimages);
+	imagePoints[1].resize(nimages);
+	objectPoints.resize(nimages);
+
+	for (i = 0; i < nimages; i++)
+	{
+		for (j = 0; j < broadSize.height; j++) 
+			for (k = 0; k < broadSize.width; k++)
+			{
+				objectPoints[i].push_back(Point3f(k*squareSize,j*squareSize,0));
+			}
+	}
+	cout << "Running image calib .." << endl;
 
 
 
