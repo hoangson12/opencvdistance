@@ -201,7 +201,8 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 				Mat timg;
 				if (scale == 1) timg = img;
 				else resize(img,timg,Size(),scale,scale,INTER_LINEAR_EXACT);
-				found = findChessboardCorners(timg, broadSize, corners, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE);
+				//found = findChessboardCorners(timg, broadSize, corners, CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE);
+				found = findChessboardCorners(timg, broadSize, corners, CALIB_CB_ADAPTIVE_THRESH);
 				if (found)
 				{
 					if (scale > 1)
@@ -222,7 +223,7 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 				double sf = 640. / MAX(img.rows, img.cols);
 				resize(cimg,cimg1,Size(),sf,sf,INTER_LINEAR_EXACT);
 				imshow("corner",cimg1);
-				char c = (char)waitKey(500);
+				char c = (char)waitKey(33);
 				if (c == 27 || c == 'q' || c == 'Q') //Allow ESC to quit
 					exit(-1);
 			}
