@@ -66,99 +66,25 @@ int captureImage()
 		Mat left;
 		Mat right;
 		webLeft >> left;
-		webRight >> right;		
-		cout << LEFT_PATH.append(i + ".jpg");
+		webRight >> right;
+		string s = to_string(i);
+		cout << LEFT_PATH+s + ".jpg";
 		imshow("left", left);
 		imshow("right", right);
-		imwrite(LEFT_PATH.append("1.jpg"), left);
-		imwrite(RIGHT_PATH.append("1.jpg"), right);
-		cout << i << "\n";
+		imwrite(LEFT_PATH.append(s + ".jpg"), left);
+		imwrite(RIGHT_PATH.append(s + ".jpg"), right);
+		cout << i << "\n";		
 		i++;
 		if (waitKey() == '1') break;
 	}
 	return 0;
 }
 
-static void calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners)
-{
-	corners.resize(0);
-	for (int i = 0; i < boardSize.height; i++)
-		for (int j = 0; j < boardSize.width; j++)
-			corners.push_back(Point3f(float(j*squareSize),
-				float(i*squareSize), 0));
-}
 
-static double computeReprojectionErrors(
-	const vector<vector<Point3f> >& objectPoints,
-	const vector<vector<Point2f> >& imagePoints,
-	const vector<Mat>& rvecs, const vector<Mat>& tvecs,
-	const Mat& cameraMatrix, const Mat& distCoeffs,
-	vector<float>& perViewErrors)
-{
-	vector<Point2f> imagePoints2;
-	int i, totalPoints = 0;
-	double totalErr = 0, err;
-	perViewErrors.resize(objectPoints.size());
 
-	for (i = 0; i < (int)objectPoints.size(); i++)
-	{
-		projectPoints(Mat(objectPoints[i]), rvecs[i], tvecs[i],
-			cameraMatrix, distCoeffs, imagePoints2);
-		err = norm(Mat(imagePoints[i]), Mat(imagePoints2), NORM_L2);
-		int n = (int)objectPoints[i].size();
-		perViewErrors[i] = (float)std::sqrt(err*err / n);
-		totalErr += err * err;
-		totalPoints += n;
-	}
 
-	return std::sqrt(totalErr / totalPoints);
-}
-
-int calibrate()
-{
-	Size boardSize(7, 6);
-	vector<string> image({ "capture\\left\\000000.jpg", "capture\\left\\000001.jpg", "capture\\left\\000002.jpg", "capture\\left\\000003.jpg", "capture\\left\\000004.jpg", "capture\\left\\000005.jpg", "capture\\left\\000006.jpg", "capture\\left\\000007.jpg", "capture\\left\\000008.jpg", "capture\\left\\000009.jpg", "capture\\left\\000010.jpg", "capture\\left\\000011.jpg", "capture\\left\\000012.jpg", "capture\\left\\000013.jpg", "capture\\left\\000014.jpg", "capture\\left\\000015.jpg", "capture\\left\\000016.jpg", "capture\\left\\000017.jpg", "capture\\left\\000018.jpg", "capture\\left\\000019.jpg", "capture\\left\\000020.jpg", "capture\\left\\000021.jpg", "capture\\left\\000022.jpg", "capture\\left\\000023.jpg", "capture\\left\\000024.jpg", "capture\\left\\000025.jpg", "capture\\left\\000026.jpg", "capture\\left\\000027.jpg", "capture\\left\\000028.jpg", "capture\\left\\000029.jpg", "capture\\left\\000030.jpg", "capture\\left\\000031.jpg", "capture\\left\\000032.jpg", "capture\\left\\000033.jpg", "capture\\left\\000034.jpg", "capture\\left\\000035.jpg", "capture\\left\\000036.jpg", "capture\\left\\000037.jpg", "capture\\left\\000038.jpg", "capture\\left\\000039.jpg", "capture\\left\\000040.jpg", "capture\\left\\000041.jpg", "capture\\left\\000042.jpg", "capture\\left\\000043.jpg", "capture\\left\\000044.jpg", "capture\\left\\000045.jpg", "capture\\left\\000046.jpg", "capture\\left\\000047.jpg", "capture\\left\\000048.jpg", "capture\\left\\000049.jpg", "capture\\left\\000050.jpg", "capture\\left\\000051.jpg", "capture\\left\\000052.jpg", "capture\\left\\000053.jpg", "capture\\left\\000054.jpg", "capture\\left\\000055.jpg", "capture\\left\\000056.jpg", "capture\\left\\000057.jpg", "capture\\left\\000058.jpg", "capture\\left\\000059.jpg", "capture\\left\\000060.jpg", "capture\\left\\000061.jpg", "capture\\left\\000062.jpg", "capture\\left\\000063.jpg", "capture\\left\\000064.jpg", "capture\\left\\000065.jpg", "capture\\left\\000066.jpg", "capture\\left\\000067.jpg", "capture\\left\\000068.jpg", "capture\\left\\000069.jpg", "capture\\left\\000070.jpg", "capture\\left\\000071.jpg", "capture\\left\\000072.jpg", "capture\\left\\000073.jpg", "capture\\left\\000074.jpg", "capture\\left\\000075.jpg", "capture\\left\\000076.jpg", "capture\\left\\000077.jpg", "capture\\left\\000078.jpg", "capture\\left\\000079.jpg", "capture\\left\\000080.jpg", "capture\\left\\000081.jpg", "capture\\left\\000082.jpg", "capture\\left\\000083.jpg", "capture\\left\\000084.jpg", "capture\\left\\000085.jpg", "capture\\left\\000086.jpg", "capture\\left\\000087.jpg", "capture\\left\\000088.jpg", "capture\\left\\000089.jpg", "capture\\left\\000090.jpg", "capture\\left\\000091.jpg", "capture\\left\\000092.jpg", "capture\\left\\000093.jpg", "capture\\left\\000094.jpg", "capture\\left\\000095.jpg", "capture\\left\\000096.jpg", "capture\\left\\000097.jpg", "capture\\left\\000098.jpg", "capture\\left\\000099.jpg", "capture\\left\\000100.jpg", "capture\\left\\000101.jpg", "capture\\left\\000102.jpg", "capture\\left\\000103.jpg", "capture\\left\\000104.jpg", "capture\\left\\000105.jpg", "capture\\left\\000106.jpg", "capture\\left\\000107.jpg", "capture\\left\\000108.jpg", "capture\\left\\000109.jpg", "capture\\left\\000110.jpg", "capture\\left\\000111.jpg", "capture\\left\\000112.jpg", "capture\\left\\000113.jpg", "capture\\left\\000114.jpg", "capture\\left\\000115.jpg", "capture\\left\\000116.jpg", "capture\\left\\000117.jpg", "capture\\left\\000118.jpg", "capture\\left\\000119.jpg", "capture\\left\\000120.jpg", "capture\\left\\000121.jpg", "capture\\left\\000122.jpg", "capture\\left\\000123.jpg", "capture\\left\\000124.jpg", "capture\\left\\000125.jpg", "capture\\left\\000126.jpg", "capture\\left\\000127.jpg", "capture\\left\\000128.jpg" });
-	
-	int count = 0;
-	double totalAvgErr = 0;
-	vector<float> reprojErrs;
-	vector<vector<Point2f> > imagePoints;
-	for (int i = 0; i < image.size(); i++) 
-	{
-		vector<Mat> rvecs, tvecs;
-		Mat distCoeffs = Mat::zeros(8, 1, CV_64F);
-		Mat cameraMatrix = Mat::zeros(8, 1, CV_64F);
-		vector<vector<Point3f> > objectPoints(1);
-		vector<Point2f> output;
-		Mat img = imread(image.at(i));
-		//cout << image.at(i) << endl;
-		bool found = findChessboardCorners(img, boardSize, output, CALIB_CB_ADAPTIVE_THRESH);
-
-		calcChessboardCorners(boardSize, 18.0, objectPoints[0]);
-		objectPoints.resize(output.size(), objectPoints[0]);
-		
-		double rms = calibrateCamera(objectPoints,output,img.size(),cameraMatrix,distCoeffs,rvecs,tvecs, CALIB_FIX_K4);
-		printf("RMS error reported by calibrateCamera: %g\n", rms);
-		bool ok = checkRange(cameraMatrix) && checkRange(distCoeffs);
-
-		totalAvgErr = computeReprojectionErrors(objectPoints, imagePoints,
-			rvecs, tvecs, cameraMatrix, distCoeffs, reprojErrs);
-		drawChessboardCorners(img, boardSize, output, found);
-		imshow("left", img);
-		waitKey(33);
-		if (found)
-		{
-			count++;
-		}		
-	}
-	
-	cout << totalAvgErr << endl;
-	cout << count << endl;
-	getchar();
-	return 0;
-}
-
-static int StereoCalib(const vector<string> &imageList, Size broadSize, float squareSize, bool displayCorners = false, bool useCalibrated = true, bool showRectified = true)
+static int StereoCalib(const vector<string> &imageList, Size broadSize, float squareSize, bool displayCorners = false, 
+								bool useCalibrated = true)
 {
 	//copy from https://github.com/opencv/opencv/blob/3.4.1/samples/cpp/stereo_calib.cpp check this shit out
 
@@ -240,8 +166,7 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 			j++;
 		}
 	}
-
-	cout << j << "pair successfully detected" << endl;
+	cout << j << " pair successfully detected" << endl;
 	nimages = j;
 	if (nimages < 2)
 	{
@@ -261,8 +186,7 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 				objectPoints[i].push_back(Point3f(k*squareSize,j*squareSize,0));
 			}
 	}
-	cout << "Running image calib .." << endl;
-	
+	cout << "Running image calib .." << endl;	
 	Mat cameraMatrix[2], distCoeffs[2];
 
 	cameraMatrix[0] = initCameraMatrix2D(objectPoints,imagePoints[0],imageSize,0);
@@ -339,6 +263,56 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 	return 0;
 }
 
+
+static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input2, bool showRectified = true)
+{
+	Mat R1, R2, P1, P2, Q;
+	Mat cameraMatrix[2], distCoeffs[2];
+	FileStorage fs;
+	fs.open("extrinics.yml", FileStorage::READ);
+	if (fs.isOpened())
+	{
+		fs["R1"] >> R1;
+		fs["R2"] >> R2;
+		fs["P1"] >> P1;
+		fs["P2"] >> P2;
+		fs["Q"] >> Q;
+		fs.release();
+	}
+	else
+	{
+		cout << "NO calibrate file, rerun the fukcing calib" << endl;
+		return 1;
+	}
+
+	fs.open("intrinsics.yml", FileStorage::READ);
+
+	if (fs.isOpened())
+	{
+		fs["M1"] >> cameraMatrix[0];
+		fs["M2"] >> cameraMatrix[1];
+		fs["D1"] >> distCoeffs[0];
+		fs["D2"] >> distCoeffs[1];
+		fs.release();
+	}
+	else
+	{
+		cout << "NO calibrate file, rerun the fukcing calib" << endl;
+		return 1;
+	}
+
+	bool isVerticalStereo = fabs(P2.at<double>(1, 3)) > fabs(P2.at<double>(0, 3));
+	
+	if (!showRectified) return 0;
+	Mat rmap[2][2];
+
+
+
+
+	
+
+	return 0;
+}
 
 
 Rect computeROI(Size2i src_sz, Ptr<StereoMatcher> matcher_instance)
