@@ -58,30 +58,35 @@ int captureImage()
 	VideoCapture webLeft(leftCam);
 	VideoCapture webRight(rightCam);
 	if (!webLeft.isOpened() || !webRight.isOpened())
+	{
+		cout << "wrong camera setting";
+		getchar();
 		return -1;
-
+	}
+		
 	int i = 0;
 	for (;;)
 	{
 		Mat left;
 		Mat right;
 		webLeft >> left;
-		webRight >> right;
-		string s = to_string(i);
-		cout << LEFT_PATH+s + ".jpg";
+		webRight >> right;		
 		imshow("left", left);
-		imshow("right", right);
-		imwrite(LEFT_PATH.append(s + ".jpg"), left);
-		imwrite(RIGHT_PATH.append(s + ".jpg"), right);
-		cout << i << "\n";		
-		i++;
-		if (waitKey() == '1') break;
+		imshow("right", right);		
+		char c = (char)waitKey(33);
+		if (c == ' ')
+		{
+			string s = to_string(i);
+			cout << LEFT_PATH + s + ".jpg";
+			imwrite(LEFT_PATH.append(s + ".jpg"), left);
+			imwrite(RIGHT_PATH.append(s + ".jpg"), right);
+			cout << i << "\n";
+			i++;
+		}
+		if (c == '1') break;
 	}
 	return 0;
 }
-
-
-
 
 static int StereoCalib(const vector<string> &imageList, Size broadSize, float squareSize, bool displayCorners = false, 
 								bool useCalibrated = true)
@@ -259,12 +264,11 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 		fs.release();
 	}
 	else cout << "Error: can not save the extrinsic parameters\n";
-
 	return 0;
 }
 
 
-static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input2, bool showRectified = true)
+static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input2,Size imageSize, bool showRectified = true)
 {
 	Mat R1, R2, P1, P2, Q;
 	Mat cameraMatrix[2], distCoeffs[2];
@@ -305,12 +309,34 @@ static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input
 	
 	if (!showRectified) return 0;
 	Mat rmap[2][2];
+	initUndistortRectifyMap(cameraMatrix[0], distCoeffs[0], R1, P1, imageSize, CV_16SC2, rmap[0][0], rmap[0][1]);
+	initUndistortRectifyMap(cameraMatrix[1], distCoeffs[1], R2, P2, imageSize, CV_16SC2, rmap[1][0], rmap[1][1]);
 
+	Mat canvas;
+	double sf;
+	int w, h;
+	// number  300  for horizontal stereo
+	sf = 300. / MAX(imageSize.width, imageSize.height);
+	w = cvRound(imageSize.width*sf);
+	h = cvRound(imageSize.height*sf);
+	canvas.create(h * 2, w, CV_8UC3);
+	//testing purpose only lul
+	Mat img = imread("img/left/1.jpg");
+	Mat rimg, cimg;
+	remap(img,rimg,rmap[0][0],rmap[0][1],INTER_LINEAR);
+	cvtColor(rimg, cimg, COLOR_GRAY2BGR);
+	Mat canvasPart = canvas(Rect(w*0, 0, w, h));
+	resize(cimg, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
 
+	Rect vroi;
+	rectangle(canvasPart, vroi, Scalar(0, 0, 255), 3, 8);
+	for (int j = 0; j < canvas.cols; j += 16)
+	{
+		line(canvas, Point(j, 0), Point(j, canvas.rows), Scalar(0, 255, 0), 1, 8);
+	}
 
-
-	
-
+	imshow("rectified", canvas);
+	char c = (char)waitKey();
 	return 0;
 }
 
@@ -423,13 +449,9 @@ int dispartyCal()
 }
 
 
-
-
-
-
 int main()
 {
-	Size broadSize(7, 6);
+	/*Size broadSize(7, 6);
 	vector<string> imageLeft ({ "capture\\left\\000000.jpg", "capture\\left\\000001.jpg", "capture\\left\\000002.jpg", "capture\\left\\000003.jpg", "capture\\left\\000004.jpg", "capture\\left\\000005.jpg", "capture\\left\\000006.jpg", "capture\\left\\000007.jpg", "capture\\left\\000008.jpg", "capture\\left\\000009.jpg", "capture\\left\\000010.jpg", "capture\\left\\000011.jpg", "capture\\left\\000012.jpg", "capture\\left\\000013.jpg", "capture\\left\\000014.jpg", "capture\\left\\000015.jpg", "capture\\left\\000016.jpg", "capture\\left\\000017.jpg", "capture\\left\\000018.jpg", "capture\\left\\000019.jpg", "capture\\left\\000020.jpg", "capture\\left\\000021.jpg", "capture\\left\\000022.jpg", "capture\\left\\000023.jpg", "capture\\left\\000024.jpg", "capture\\left\\000025.jpg", "capture\\left\\000026.jpg", "capture\\left\\000027.jpg", "capture\\left\\000028.jpg", "capture\\left\\000029.jpg", "capture\\left\\000030.jpg", "capture\\left\\000031.jpg", "capture\\left\\000032.jpg", "capture\\left\\000033.jpg", "capture\\left\\000034.jpg", "capture\\left\\000035.jpg", "capture\\left\\000036.jpg", "capture\\left\\000037.jpg", "capture\\left\\000038.jpg", "capture\\left\\000039.jpg", "capture\\left\\000040.jpg", "capture\\left\\000041.jpg", "capture\\left\\000042.jpg", "capture\\left\\000043.jpg", "capture\\left\\000044.jpg", "capture\\left\\000045.jpg", "capture\\left\\000046.jpg", "capture\\left\\000047.jpg", "capture\\left\\000048.jpg", "capture\\left\\000049.jpg", "capture\\left\\000050.jpg", "capture\\left\\000051.jpg", "capture\\left\\000052.jpg", "capture\\left\\000053.jpg", "capture\\left\\000054.jpg", "capture\\left\\000055.jpg", "capture\\left\\000056.jpg", "capture\\left\\000057.jpg", "capture\\left\\000058.jpg", "capture\\left\\000059.jpg", "capture\\left\\000060.jpg", "capture\\left\\000061.jpg", "capture\\left\\000062.jpg", "capture\\left\\000063.jpg", "capture\\left\\000064.jpg", "capture\\left\\000065.jpg", "capture\\left\\000066.jpg", "capture\\left\\000067.jpg", "capture\\left\\000068.jpg", "capture\\left\\000069.jpg", "capture\\left\\000070.jpg", "capture\\left\\000071.jpg", "capture\\left\\000072.jpg", "capture\\left\\000073.jpg", "capture\\left\\000074.jpg", "capture\\left\\000075.jpg", "capture\\left\\000076.jpg", "capture\\left\\000077.jpg", "capture\\left\\000078.jpg", "capture\\left\\000079.jpg", "capture\\left\\000080.jpg", "capture\\left\\000081.jpg", "capture\\left\\000082.jpg", "capture\\left\\000083.jpg", "capture\\left\\000084.jpg", "capture\\left\\000085.jpg", "capture\\left\\000086.jpg", "capture\\left\\000087.jpg", "capture\\left\\000088.jpg", "capture\\left\\000089.jpg", "capture\\left\\000090.jpg", "capture\\left\\000091.jpg", "capture\\left\\000092.jpg", "capture\\left\\000093.jpg", "capture\\left\\000094.jpg", "capture\\left\\000095.jpg", "capture\\left\\000096.jpg", "capture\\left\\000097.jpg", "capture\\left\\000098.jpg", "capture\\left\\000099.jpg", "capture\\left\\000100.jpg", "capture\\left\\000101.jpg", "capture\\left\\000102.jpg", "capture\\left\\000103.jpg", "capture\\left\\000104.jpg", "capture\\left\\000105.jpg", "capture\\left\\000106.jpg", "capture\\left\\000107.jpg", "capture\\left\\000108.jpg", "capture\\left\\000109.jpg", "capture\\left\\000110.jpg", "capture\\left\\000111.jpg", "capture\\left\\000112.jpg", "capture\\left\\000113.jpg", "capture\\left\\000114.jpg", "capture\\left\\000115.jpg", "capture\\left\\000116.jpg", "capture\\left\\000117.jpg", "capture\\left\\000118.jpg", "capture\\left\\000119.jpg", "capture\\left\\000120.jpg", "capture\\left\\000121.jpg", "capture\\left\\000122.jpg", "capture\\left\\000123.jpg", "capture\\left\\000124.jpg", "capture\\left\\000125.jpg", "capture\\left\\000126.jpg", "capture\\left\\000127.jpg", "capture\\left\\000128.jpg" });
 
 	vector<string> imageListAll;
@@ -442,13 +464,22 @@ int main()
 	}
 	for (int i=0;i<imageListAll.size();i++) cout << imageListAll[i] << endl;
 
-	StereoCalib(imageListAll, broadSize, 18, true, true, true);
+	StereoCalib(imageListAll, broadSize, 18, true, true);*/
 
-	getchar();
-	return 0;
+	//return 0;
 	
 	//return calibrate();
 	//return dispartyCal();
 	//return captureImage();
 	//return showCamera();
+	VideoCapture webLeft(2);
+	Mat left;
+	for (;;)
+	{
+		webLeft >> left;
+		imshow("letf", left);
+		if (waitKey(1) == '1') break;
+	}
+
+	
 }
