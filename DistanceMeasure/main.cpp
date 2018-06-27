@@ -54,7 +54,7 @@ int showCamera()
 
 int captureImage()
 {
-
+	float scale = 1;
 	VideoCapture webLeft(leftCam);
 	VideoCapture webRight(rightCam);
 	if (!webLeft.isOpened() || !webRight.isOpened())
@@ -64,22 +64,30 @@ int captureImage()
 		return -1;
 	}
 		
+	webLeft.set(CV_CAP_PROP_FRAME_HEIGHT, 960 / scale);
+	webLeft.set(CV_CAP_PROP_FRAME_WIDTH, 1280 / scale);
+	webLeft.set(CV_CAP_PROP_FPS, 30);
+	webRight.set(CV_CAP_PROP_FRAME_HEIGHT, 960 / scale);
+	webRight.set(CV_CAP_PROP_FRAME_WIDTH, 1280 / scale);
+	webRight.set(CV_CAP_PROP_FPS, 30);
 	int i = 0;
 	for (;;)
 	{
 		Mat left;
 		Mat right;
 		webLeft >> left;
-		webRight >> right;		
+		webRight >> right;
+		flip(right, right, -1);
 		imshow("left", left);
 		imshow("right", right);		
 		char c = (char)waitKey(33);
 		if (c == ' ')
 		{
+
 			string s = to_string(i);
 			cout << LEFT_PATH + s + ".jpg";
-			imwrite(LEFT_PATH.append(s + ".jpg"), left);
-			imwrite(RIGHT_PATH.append(s + ".jpg"), right);
+			imwrite(LEFT_PATH+s + ".jpg", left);
+			imwrite(RIGHT_PATH+ s + ".jpg", right);
 			cout << i << "\n";
 			i++;
 		}
@@ -264,6 +272,15 @@ static int StereoCalib(const vector<string> &imageList, Size broadSize, float sq
 		fs.release();
 	}
 	else cout << "Error: can not save the extrinsic parameters\n";
+	fs.open("validRoi.yml", FileStorage::WRITE);
+	if (fs.isOpened())
+	{
+		fs << "V1" << validRoi[0] << "V2" << validRoi[1];
+		fs.release();
+	}
+	else cout << "SML";
+
+	
 	return 0;
 }
 
@@ -272,6 +289,7 @@ static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input
 {
 	Mat R1, R2, P1, P2, Q;
 	Mat cameraMatrix[2], distCoeffs[2];
+	Rect validRoi[2];
 	FileStorage fs;
 	fs.open("extrinics.yml", FileStorage::READ);
 	if (fs.isOpened())
@@ -286,7 +304,7 @@ static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input
 	else
 	{
 		cout << "NO calibrate file, rerun the fukcing calib" << endl;
-		return 1;
+		return -1;
 	}
 
 	fs.open("intrinsics.yml", FileStorage::READ);
@@ -302,8 +320,21 @@ static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input
 	else
 	{
 		cout << "NO calibrate file, rerun the fukcing calib" << endl;
-		return 1;
+		return -1;
 	}
+	fs.open("validRoi.yml", FileStorage::READ);
+	if (fs.isOpened())
+	{
+		fs["V1"] >> validRoi[0];
+		fs["V2"] >> validRoi[1];
+		fs.release();
+	}
+	else
+	{
+		cout << "NO calibrate file, rerun the fukcing calib" << endl;
+		return -1;
+	}
+
 
 	bool isVerticalStereo = fabs(P2.at<double>(1, 3)) > fabs(P2.at<double>(0, 3));
 	
@@ -328,7 +359,7 @@ static int remapInput(string intrinsics, string extrinics, Mat input1, Mat input
 	Mat canvasPart = canvas(Rect(w*0, 0, w, h));
 	resize(cimg, canvasPart, canvasPart.size(), 0, 0, INTER_AREA);
 
-	Rect vroi;
+	Rect vroi(cvRound(validRoi[0].x*sf),cvRound(validRoi[0].y*sf),cvRound(validRoi[0].width*sf),cvRound(validRoi[0].height*sf));
 	rectangle(canvasPart, vroi, Scalar(0, 0, 255), 3, 8);
 	for (int j = 0; j < canvas.cols; j += 16)
 	{
@@ -451,35 +482,27 @@ int dispartyCal()
 
 int main()
 {
-	/*Size broadSize(7, 6);
-	vector<string> imageLeft ({ "capture\\left\\000000.jpg", "capture\\left\\000001.jpg", "capture\\left\\000002.jpg", "capture\\left\\000003.jpg", "capture\\left\\000004.jpg", "capture\\left\\000005.jpg", "capture\\left\\000006.jpg", "capture\\left\\000007.jpg", "capture\\left\\000008.jpg", "capture\\left\\000009.jpg", "capture\\left\\000010.jpg", "capture\\left\\000011.jpg", "capture\\left\\000012.jpg", "capture\\left\\000013.jpg", "capture\\left\\000014.jpg", "capture\\left\\000015.jpg", "capture\\left\\000016.jpg", "capture\\left\\000017.jpg", "capture\\left\\000018.jpg", "capture\\left\\000019.jpg", "capture\\left\\000020.jpg", "capture\\left\\000021.jpg", "capture\\left\\000022.jpg", "capture\\left\\000023.jpg", "capture\\left\\000024.jpg", "capture\\left\\000025.jpg", "capture\\left\\000026.jpg", "capture\\left\\000027.jpg", "capture\\left\\000028.jpg", "capture\\left\\000029.jpg", "capture\\left\\000030.jpg", "capture\\left\\000031.jpg", "capture\\left\\000032.jpg", "capture\\left\\000033.jpg", "capture\\left\\000034.jpg", "capture\\left\\000035.jpg", "capture\\left\\000036.jpg", "capture\\left\\000037.jpg", "capture\\left\\000038.jpg", "capture\\left\\000039.jpg", "capture\\left\\000040.jpg", "capture\\left\\000041.jpg", "capture\\left\\000042.jpg", "capture\\left\\000043.jpg", "capture\\left\\000044.jpg", "capture\\left\\000045.jpg", "capture\\left\\000046.jpg", "capture\\left\\000047.jpg", "capture\\left\\000048.jpg", "capture\\left\\000049.jpg", "capture\\left\\000050.jpg", "capture\\left\\000051.jpg", "capture\\left\\000052.jpg", "capture\\left\\000053.jpg", "capture\\left\\000054.jpg", "capture\\left\\000055.jpg", "capture\\left\\000056.jpg", "capture\\left\\000057.jpg", "capture\\left\\000058.jpg", "capture\\left\\000059.jpg", "capture\\left\\000060.jpg", "capture\\left\\000061.jpg", "capture\\left\\000062.jpg", "capture\\left\\000063.jpg", "capture\\left\\000064.jpg", "capture\\left\\000065.jpg", "capture\\left\\000066.jpg", "capture\\left\\000067.jpg", "capture\\left\\000068.jpg", "capture\\left\\000069.jpg", "capture\\left\\000070.jpg", "capture\\left\\000071.jpg", "capture\\left\\000072.jpg", "capture\\left\\000073.jpg", "capture\\left\\000074.jpg", "capture\\left\\000075.jpg", "capture\\left\\000076.jpg", "capture\\left\\000077.jpg", "capture\\left\\000078.jpg", "capture\\left\\000079.jpg", "capture\\left\\000080.jpg", "capture\\left\\000081.jpg", "capture\\left\\000082.jpg", "capture\\left\\000083.jpg", "capture\\left\\000084.jpg", "capture\\left\\000085.jpg", "capture\\left\\000086.jpg", "capture\\left\\000087.jpg", "capture\\left\\000088.jpg", "capture\\left\\000089.jpg", "capture\\left\\000090.jpg", "capture\\left\\000091.jpg", "capture\\left\\000092.jpg", "capture\\left\\000093.jpg", "capture\\left\\000094.jpg", "capture\\left\\000095.jpg", "capture\\left\\000096.jpg", "capture\\left\\000097.jpg", "capture\\left\\000098.jpg", "capture\\left\\000099.jpg", "capture\\left\\000100.jpg", "capture\\left\\000101.jpg", "capture\\left\\000102.jpg", "capture\\left\\000103.jpg", "capture\\left\\000104.jpg", "capture\\left\\000105.jpg", "capture\\left\\000106.jpg", "capture\\left\\000107.jpg", "capture\\left\\000108.jpg", "capture\\left\\000109.jpg", "capture\\left\\000110.jpg", "capture\\left\\000111.jpg", "capture\\left\\000112.jpg", "capture\\left\\000113.jpg", "capture\\left\\000114.jpg", "capture\\left\\000115.jpg", "capture\\left\\000116.jpg", "capture\\left\\000117.jpg", "capture\\left\\000118.jpg", "capture\\left\\000119.jpg", "capture\\left\\000120.jpg", "capture\\left\\000121.jpg", "capture\\left\\000122.jpg", "capture\\left\\000123.jpg", "capture\\left\\000124.jpg", "capture\\left\\000125.jpg", "capture\\left\\000126.jpg", "capture\\left\\000127.jpg", "capture\\left\\000128.jpg" });
+	Size broadSize(7, 6);
+	//vector<string> imageLeft ({ "capture\\left\\000000.jpg", "capture\\left\\000001.jpg", "capture\\left\\000002.jpg", "capture\\left\\000003.jpg", "capture\\left\\000004.jpg", "capture\\left\\000005.jpg", "capture\\left\\000006.jpg", "capture\\left\\000007.jpg", "capture\\left\\000008.jpg", "capture\\left\\000009.jpg", "capture\\left\\000010.jpg", "capture\\left\\000011.jpg", "capture\\left\\000012.jpg", "capture\\left\\000013.jpg", "capture\\left\\000014.jpg", "capture\\left\\000015.jpg", "capture\\left\\000016.jpg", "capture\\left\\000017.jpg", "capture\\left\\000018.jpg", "capture\\left\\000019.jpg", "capture\\left\\000020.jpg", "capture\\left\\000021.jpg", "capture\\left\\000022.jpg", "capture\\left\\000023.jpg", "capture\\left\\000024.jpg", "capture\\left\\000025.jpg", "capture\\left\\000026.jpg", "capture\\left\\000027.jpg", "capture\\left\\000028.jpg", "capture\\left\\000029.jpg", "capture\\left\\000030.jpg", "capture\\left\\000031.jpg", "capture\\left\\000032.jpg", "capture\\left\\000033.jpg", "capture\\left\\000034.jpg", "capture\\left\\000035.jpg", "capture\\left\\000036.jpg", "capture\\left\\000037.jpg", "capture\\left\\000038.jpg", "capture\\left\\000039.jpg", "capture\\left\\000040.jpg", "capture\\left\\000041.jpg", "capture\\left\\000042.jpg", "capture\\left\\000043.jpg", "capture\\left\\000044.jpg", "capture\\left\\000045.jpg", "capture\\left\\000046.jpg", "capture\\left\\000047.jpg", "capture\\left\\000048.jpg", "capture\\left\\000049.jpg", "capture\\left\\000050.jpg", "capture\\left\\000051.jpg", "capture\\left\\000052.jpg", "capture\\left\\000053.jpg", "capture\\left\\000054.jpg", "capture\\left\\000055.jpg", "capture\\left\\000056.jpg", "capture\\left\\000057.jpg", "capture\\left\\000058.jpg", "capture\\left\\000059.jpg", "capture\\left\\000060.jpg", "capture\\left\\000061.jpg", "capture\\left\\000062.jpg", "capture\\left\\000063.jpg", "capture\\left\\000064.jpg", "capture\\left\\000065.jpg", "capture\\left\\000066.jpg", "capture\\left\\000067.jpg", "capture\\left\\000068.jpg", "capture\\left\\000069.jpg", "capture\\left\\000070.jpg", "capture\\left\\000071.jpg", "capture\\left\\000072.jpg", "capture\\left\\000073.jpg", "capture\\left\\000074.jpg", "capture\\left\\000075.jpg", "capture\\left\\000076.jpg", "capture\\left\\000077.jpg", "capture\\left\\000078.jpg", "capture\\left\\000079.jpg", "capture\\left\\000080.jpg", "capture\\left\\000081.jpg", "capture\\left\\000082.jpg", "capture\\left\\000083.jpg", "capture\\left\\000084.jpg", "capture\\left\\000085.jpg", "capture\\left\\000086.jpg", "capture\\left\\000087.jpg", "capture\\left\\000088.jpg", "capture\\left\\000089.jpg", "capture\\left\\000090.jpg", "capture\\left\\000091.jpg", "capture\\left\\000092.jpg", "capture\\left\\000093.jpg", "capture\\left\\000094.jpg", "capture\\left\\000095.jpg", "capture\\left\\000096.jpg", "capture\\left\\000097.jpg", "capture\\left\\000098.jpg", "capture\\left\\000099.jpg", "capture\\left\\000100.jpg", "capture\\left\\000101.jpg", "capture\\left\\000102.jpg", "capture\\left\\000103.jpg", "capture\\left\\000104.jpg", "capture\\left\\000105.jpg", "capture\\left\\000106.jpg", "capture\\left\\000107.jpg", "capture\\left\\000108.jpg", "capture\\left\\000109.jpg", "capture\\left\\000110.jpg", "capture\\left\\000111.jpg", "capture\\left\\000112.jpg", "capture\\left\\000113.jpg", "capture\\left\\000114.jpg", "capture\\left\\000115.jpg", "capture\\left\\000116.jpg", "capture\\left\\000117.jpg", "capture\\left\\000118.jpg", "capture\\left\\000119.jpg", "capture\\left\\000120.jpg", "capture\\left\\000121.jpg", "capture\\left\\000122.jpg", "capture\\left\\000123.jpg", "capture\\left\\000124.jpg", "capture\\left\\000125.jpg", "capture\\left\\000126.jpg", "capture\\left\\000127.jpg", "capture\\left\\000128.jpg" });
+	vector<string> imageLeft ({ "img\\left\\0.jpg","img\\left\\1.jpg","img\\left\\10.jpg","img\\left\\11.jpg","img\\left\\12.jpg","img\\left\\13.jpg","img\\left\\14.jpg","img\\left\\15.jpg","img\\left\\16.jpg","img\\left\\17.jpg","img\\left\\18.jpg","img\\left\\19.jpg","img\\left\\2.jpg","img\\left\\3.jpg","img\\left\\4.jpg","img\\left\\5.jpg","img\\left\\6.jpg","img\\left\\7.jpg","img\\left\\8.jpg","img\\left\\9.jpg" });
 
 	vector<string> imageListAll;
 
 	for (int i = 0; i < imageLeft.size(); i++)
 	{
 		imageListAll.push_back(imageLeft[i]);
-		imageListAll.push_back(imageLeft[i].replace(8,4,"right"));
+		imageListAll.push_back(imageLeft[i].replace(4,4,"right"));
 		
 	}
 	for (int i=0;i<imageListAll.size();i++) cout << imageListAll[i] << endl;
 
-	StereoCalib(imageListAll, broadSize, 18, true, true);*/
-
-	//return 0;
+	StereoCalib(imageListAll, broadSize, 18, true, true);
+	//getchar();
+	return 0;
 	
 	//return calibrate();
 	//return dispartyCal();
 	//return captureImage();
 	//return showCamera();
-	VideoCapture webLeft(2);
-	Mat left;
-	for (;;)
-	{
-		webLeft >> left;
-		imshow("letf", left);
-		if (waitKey(1) == '1') break;
-	}
 
-	
 }
